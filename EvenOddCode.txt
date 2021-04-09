@@ -1,0 +1,110 @@
+
+import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+
+//Driver Class
+
+public class EvenOddDriver 
+{
+	public static void main(String[] args) throws IOException,ClassNotFoundException, InterruptedException 
+	{
+
+		Configuration conf = new Configuration();
+		Job job = new Job(conf, "Evenodd");  
+		
+		////name of Driver class
+		job.setJarByClass(EvenOddDriver.class);
+		//name of mapper class
+		job.setMapperClass(EvenOddMapper.class);
+		// name of reducer class
+		job.setReducerClass(EvenOddReducer.class);
+		job.setMapOutputKeyClass(Text.class);
+		job.setMapOutputValueClass(IntWritable.class);
+
+		//FileInputFormat.addInputPath(job, input_file_loc);
+		//FileOutputFormat.setOutputPath(job, output_dir_loc);
+		//output_dir_loc.getFileSystem(job.getConfiguration()).delete(output_dir_loc,true);
+		
+		FileInputFormat.addInputPath(job, new Path(args[0]));
+		FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+		System.exit(job.waitForCompletion(true) ? 0 : 1);
+	}
+}
+
+//Mapper Class
+
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
+
+public class EvenOddMapper extends Mapper<LongWritable, Text, Text, IntWritable> 
+{
+
+	
+	public void map(LongWritable key, Text value, Context context)throws java.io.IOException, InterruptedException
+	{
+		String data[]=value.toString().split(",");    //data =  [85 131 993 392 689....]
+		
+	
+		for(String num:data)
+		{
+			int number=Integer.parseInt(num);
+			if((number%2)==1)
+			{
+				context.write(new Text("ODD"), new IntWritable(number));   //  ODD 85  131  993 
+			}
+			else
+			{
+				context.write(new Text("EVEN"), new IntWritable(number));   //  EVEN  392
+			}
+			
+			}
+					
+		}
+	}
+
+
+//Reducer Class
+
+import java.io.IOException;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Reducer;
+
+public class EvenOddReducer extends Reducer<Text, IntWritable, Text, IntWritable> 
+{
+	
+	// reducer will recieve key value pair as  ODD [ 85 131 993 491 539 985 413.....
+                                            // 	EVEN [ 392 870 240 888 184 494 704 996 408....
+	
+	public void reduce(Text key, Iterable<IntWritable> values, Context context)	throws IOException, InterruptedException
+	{
+		int sum = 0;
+		if(key.equals("ODD"))
+		{
+			for (IntWritable value : values)
+			{
+				sum += value.get();
+			}
+		}
+		else
+		{
+			for (IntWritable value : values)
+			{
+				sum += value.get();
+		}
+		
+		}
+		context.write(key,new IntWritable(sum));;
+	}
+}
+
